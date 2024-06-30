@@ -4,6 +4,8 @@ namespace App\Jobs;
 
 use App\Mail\SendUserPhoto;
 use Exception;
+use Illuminate\Bus\Batch;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -15,7 +17,7 @@ use Illuminate\Support\Facades\Mail;
 
 class HourlyReport implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * Create a new job instance.
@@ -37,31 +39,21 @@ class HourlyReport implements ShouldQueue
         $attachmentsPath = storage_path('app/output/');
         $file_output_path = $attachmentsPath. pathinfo($this->file_name, PATHINFO_FILENAME);
 
-        // ResizeJob::dispatch($this->file_name, 100);
-        // ResizeJob::dispatch($this->file_name, 100);
-        // ResizeJob::dispatch($this->file_name, 500);
-        // ResizeJob::dispatch($this->file_name, 600);
-        // ResizeJob::dispatch($this->file_name, 400);
-
-        // Job Chaining 
-        
         $sizes = [100,400,500,600];
         $jobs = [];
 
         foreach($sizes as $size){
             $jobs[] =  new ResizeJob($this->file_name, $size);
         }
+        $email = $this->email;
 
-        Bus::chain(jobs:[
+        Bus::batch(jobs:[
           ...$jobs,
-            new SendUserEmail($this->email, $file_output_path,$sizes),
-
-        ])->catch(function(){ 
-            
+        ])->then(function(Batch $batch) use($sizes,$file_output_path,$email){
+            SendUserEmail::dispatch($email, $file_output_path,$sizes);
+        })->catch(function(Batch $batch,\Throwable $e){
+                dd($e->getMessage());
         })->dispatch();
-
-        
-
     }
 }
  

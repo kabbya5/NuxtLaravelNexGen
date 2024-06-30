@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Jobs\BasicJob;
 use App\Jobs\HourlyReport;
 use App\Jobs\ImageProcessor;
-
+use App\Jobs\ResizeJob;
+use App\Jobs\SendUserEmail;
+use Illuminate\Bus\Batch;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Bus;
 use image;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
@@ -32,8 +35,6 @@ class BasicJobController extends Controller
         $image->storeAs('photos', $file_name);
 
         
-        // ImageProcessor::dispatch($email,$file_name);
-
         HourlyReport::dispatch($email, $file_name);
 
         // return redirect()->back();

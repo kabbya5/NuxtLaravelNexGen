@@ -2,17 +2,19 @@
 
 namespace App\Jobs;
 
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\SkipIfBatchCancelled;
 use Illuminate\Queue\SerializesModels;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
 
 class ResizeJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private $file_name;
     private $size;
@@ -42,6 +44,10 @@ class ResizeJob implements ShouldQueue
      */
     public function handle(): void
     {
+        // if($this->batch()->cancelled()){
+        //     return ;
+        // }
+
         $manager = new ImageManager(
             new Driver()
         );
@@ -53,5 +59,10 @@ class ResizeJob implements ShouldQueue
 
         $file_output_path = $this->attachmentsPath. pathinfo($this->file_name,PATHINFO_FILENAME);
         $encoded->save($file_output_path.'-'. $this->size . '.jpeg' );
+    }
+
+    public function middleware()
+    {
+        return [new SkipIfBatchCancelled];
     }
 }
